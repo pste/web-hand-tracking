@@ -11,18 +11,18 @@ const taskVisionPath = undefined; /* if empty it uses the host's root folder */
 
 // init model
 const vision = await FilesetResolver.forVisionTasks( taskVisionPath );
-let running = false;
 
 // create the landmarker obj
-//await handLandmarker.setOptions({ runningMode: "video" });
-const handLandmarker = await HandLandmarker.createFromOptions( vision, {
-    baseOptions: {
-        modelAssetPath: modelPath,
-        delegate: "GPU"
-    },
-    runningMode: "video",
-    numHands: 2
-});
+async function createHandLandmarker() {
+    return await HandLandmarker.createFromOptions( vision, {
+        baseOptions: {
+            modelAssetPath: modelPath,
+            delegate: "GPU"
+        },
+        runningMode: "video",
+        numHands: 2
+    })
+}
 
 // == UTILS ======================================================================== //
 
@@ -67,38 +67,39 @@ function readHand(handedness, landmarks) {
         info: handedness[0],
         wrist: {
             landmarks: [],
+            color: "#FFFFFF",
         },
         fingers: {
             thumb: {
-                closed: checkArc(landmarks.slice(1,4)), // distance(landmarks[1], landmarks[4]) <= treshold,
+                closed: false, // checkArc(landmarks.slice(1,4)), // distance(landmarks[1], landmarks[4]) <= treshold,
                 distance: distance(landmarks[1], landmarks[4]),
                 landmarks: [],
                 color1: "#ff0d0d",
                 color2: "#000000",
             },
             index: {
-                closed: checkArc(landmarks.slice(5,8)), // distance(landmarks[5], landmarks[8]) <= treshold,
+                closed: false, // checkArc(landmarks.slice(5,8)), // distance(landmarks[5], landmarks[8]) <= treshold,
                 distance: distance(landmarks[5], landmarks[8]),
                 landmarks: [],
                 color1: "#00FF00",
                 color2: "#000000",
             },
             middle: {
-                closed: checkArc(landmarks.slice(9,12)), // distance(landmarks[9], landmarks[12]) <= treshold,
+                closed: false, // checkArc(landmarks.slice(9,12)), // distance(landmarks[9], landmarks[12]) <= treshold,
                 distance: distance(landmarks[9], landmarks[12]),
                 landmarks: [],
                 color1: "#0000ff",
                 color2: "#000000",
             },
             ring: {
-                closed: checkArc(landmarks.slice(13,16)), // distance(landmarks[13], landmarks[16]) <= treshold,
+                closed: false, // checkArc(landmarks.slice(13,16)), // distance(landmarks[13], landmarks[16]) <= treshold,
                 distance: distance(landmarks[13], landmarks[16]),
                 landmarks: [],
                 color1:"#FFFF00",
                 color2:"#000000",
             },
             pinky: {
-                closed: checkArc(landmarks.slice(17,20)), // distance(landmarks[17], landmarks[20]) <= treshold,
+                closed: false, // checkArc(landmarks.slice(17,20)), // distance(landmarks[17], landmarks[20]) <= treshold,
                 distance: distance(landmarks[17], landmarks[20]),
                 landmarks: [],
                 color1: "#7b00b4",
@@ -115,7 +116,6 @@ function readHand(handedness, landmarks) {
         if (index >= 13 && index <= 16) hand.fingers.ring.landmarks.push(landmark); 
         if (index >= 17 && index <= 20) hand.fingers.pinky.landmarks.push(landmark); 
     })
-    console.log(hand);
     return hand;
 }
 
@@ -136,6 +136,13 @@ function drawHand(drawingUtils, handedness, landmarks) {
 
     const hand = readHand(handedness, landmarks);
     // console.log(`${JSON.stringify(hand)} found`)
+    // draw wrist
+    drawingUtils.drawLandmarks(hand.wrist.landmarks, {
+        color: hand.wrist.color,
+        radius: 4,
+        lineWidth: 1,
+    });
+    // draw fingers
     for (let idx in hand.fingers) {
         const finger = hand.fingers[idx];
         const landmarks = finger.landmarks;
@@ -146,6 +153,7 @@ function drawHand(drawingUtils, handedness, landmarks) {
             lineWidth: 1,
         });
     }
+
     /*landmarks.forEach((landmark, index) => {
         let color = "#000000";
         let size = 2;
@@ -177,10 +185,14 @@ function drawHand(drawingUtils, handedness, landmarks) {
 
 // == DETECT ======================================================================== //
 
+// the detector
+let handLandmarker = await createHandLandmarker();
+let running = false;
+
 // detect from video
-let lastVideoTime = -1; // this is global to keep track of start / stop / restart on the video
-function startDetection(video, canvas) {
+async function startDetection(video, canvas) {
     console.log("detection started");
+    let lastVideoTime = -1;
     running = true;
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -197,8 +209,7 @@ function startDetection(video, canvas) {
                 results = handLandmarker.detectForVideo(video, video.currentTime);
                 lastVideoTime = video.currentTime;
             }
-            // two hands result: {landmarks: Array(2), worldLandmarks: Array(2), handednesses: Array(2), handedness: Array(2)}
-            // one hand  result: {landmarks: Array(1), worldLandmarks: Array(1), handednesses: Array(1), handedness: Array(1)}
+            
             // draw the sticky connections
             if (results && results?.landmarks) {
                 // clear and redraw photo
@@ -223,15 +234,19 @@ function startDetection(video, canvas) {
             requestAnimationFrame(frameLoop);
         }
     }
+
     frameLoop();
 }
 
 //
-function stopDetection() {
+async function stopDetection() {
     console.log("detection stopped");
     running = false;
 
-    handLandmarker.close();
+    if (handLandmarker) {
+        handLandmarker.close();
+        handLandmarker = await createHandLandmarker(); // reinit the landmarker obj
+    }
 }
 
 // == PLUGIN ======================================================================== //
