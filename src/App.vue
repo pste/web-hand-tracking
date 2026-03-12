@@ -1,11 +1,25 @@
-<script setup></script>
+<script setup>
+import CameraView from './views/CameraView.vue';
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <CameraView></CameraView>
 </template>
 
-<style scoped></style>
+<style scoped>
+  html, body, main, section{
+    height: 100%;
+    width: 100%;
+  }
+  
+  html{
+    position: fixed;
+  }
+  
+  body{
+    font-family: 'Lato', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+  }
+  </style>

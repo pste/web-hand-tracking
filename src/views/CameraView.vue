@@ -1,0 +1,98 @@
+<script setup>
+import FooterComponent from '@/components/FooterComponent.vue'
+
+import { ref, inject, onMounted } from 'vue'
+
+const mediapipe = inject('mediapipe'); // inject the plugin
+
+const stream = ref(null); // a MediaStream HTML5 object
+const videoRef = ref(null);
+const canvasRef = ref(null);
+
+//
+function predictWebcam() {
+  // start the detection (read from video, draw on canvas)
+  const video = videoRef.value;
+  const canvas = canvasRef.value;
+  
+  // 
+  mediapipe.startDetection(video, canvas);
+}
+
+//
+async function startCamera() {
+  // enable webcam
+  stream.value = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: {
+      facingMode: 'environment' // 'user'
+    }
+  });
+  
+  // hook the stream to the video html object
+  videoRef.value.srcObject = stream.value;
+}
+
+//
+function stopCamera() {
+  // stop detection
+  mediapipe.stopDetection();
+
+  // stop camera reading
+  const mediastream = stream.value;
+  if (mediastream) {
+    let track = mediastream.getTracks()[0]; // if only one media track
+    track.stop();
+  }
+
+  // clear state
+  stream.value = null;
+  videoRef.value.srcObject = null;
+}
+
+// init
+onMounted(() => {
+  //videoRef.value.addEventListener("loadeddata", predictWebcam);
+  videoRef.value.onloadeddata = (evt) => { predictWebcam(); };
+})
+</script>
+
+<template>
+  <main>
+    <video 
+          ref="videoRef" 
+          autoplay 
+          muted 
+          playsinline
+          class="videoplayer"
+    ></video>
+    <canvas 
+          ref="canvasRef" 
+          width="256" 
+          height="256" 
+          class="videoframes"
+    ></canvas>
+  </main>
+
+  <FooterComponent
+      @start-camera="startCamera"
+      @stop-camera="stopCamera"
+  ></FooterComponent>
+</template>
+
+<style scoped>
+.videoplayer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0.01;
+  pointer-events: none;
+}
+
+.videoframes {
+  transform: scale(-1,1);
+  border: 1px solid black;
+}
+</style>
