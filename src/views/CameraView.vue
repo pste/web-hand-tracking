@@ -52,6 +52,10 @@ function stopCamera() {
 
 // init
 onMounted(() => {
+  // go fullscreen
+  //canvasRef.value.width = window.innerWidth;
+  //canvasRef.value.height = window.innerHeight;
+
   //videoRef.value.addEventListener("loadeddata", predictWebcam);
   videoRef.value.onloadeddata = (evt) => { predictWebcam(); };
 })
@@ -92,7 +96,9 @@ onMounted(() => {
 }
 
 .videoframes {
-  transform: scale(-1,1);
-  border: 1px solid black;
+  transform: scale(-1,1); /* reflect image */
+  display: block;
+  width: 90vh; /* not a typo: we need a square */
+  height: 90vh;
 }
 </style>
