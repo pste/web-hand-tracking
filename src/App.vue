@@ -1,17 +1,10 @@
 <script setup>
-import CameraView from './views/CameraView.vue';
+import MainView from './views/MainView.vue';
 </script>
 
 <template>
-  <CameraView></CameraView>
+  <MainView></MainView>
 </template>
 
 <style scoped>
-html {
-  position: fixed;
-}
-
-body {
-  overflow: hidden;
-}
 </style>

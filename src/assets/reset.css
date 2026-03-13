@@ -1,7 +1,16 @@
-html, body, main, section {
+html, body {
   height: 100%;
   width: 100%;
   margin: 0px;
   padding: 0px;
   border: 0px;
+}
+
+html {
+  position: fixed;
+}
+
+body {
+  overflow: hidden;
+  background-color: rgb(59, 59, 59);
 }

@@ -120,8 +120,6 @@ function readHand(handedness, landmarks) {
 }
 
 function drawHand(drawingUtils, handedness, landmarks) {
-    //console.log("drawHand", handedness, handedness.length, landmarks, landmarks.length);
-
     // draw sticky lines
     drawingUtils.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, {
         color: "#abffab",

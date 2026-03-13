@@ -1,23 +1,17 @@
 <script setup>
-import FooterComponent from '@/components/FooterComponent.vue'
+import { ref, watch, inject, onMounted } from 'vue'
 
-import { ref, inject, onMounted } from 'vue'
-
-const mediapipe = inject('mediapipe'); // inject the plugin
-
+const mediapipe = inject('mediapipe');
+const cameraStarted = inject('cameraStarted');
 const stream = ref(null); // a MediaStream HTML5 object
 const videoRef = ref(null);
+
 const canvasRef = ref(null);
 
-//
-function predictWebcam() {
-  // start the detection (read from video, draw on canvas)
-  const video = videoRef.value;
-  const canvas = canvasRef.value;
-  
-  // 
-  mediapipe.startDetection(video, canvas);
-}
+watch(cameraStarted, (val) => {
+    if (val) startCamera();
+    else stopCamera();
+})
 
 //
 async function startCamera() {
@@ -50,6 +44,16 @@ function stopCamera() {
   videoRef.value.srcObject = null;
 }
 
+//
+function predictWebcam() {
+  // start the detection (read from video, draw on canvas)
+  const video = videoRef.value;
+  const canvas = canvasRef.value;
+  
+  // 
+  mediapipe.startDetection(video, canvas);
+}
+
 // init
 onMounted(() => {
   // go fullscreen
@@ -62,7 +66,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main>
+    <!-- reading video -->
     <video 
           ref="videoRef" 
           autoplay 
@@ -70,18 +74,11 @@ onMounted(() => {
           playsinline
           class="videoplayer"
     ></video>
+    <!-- darwing hands -->
     <canvas 
           ref="canvasRef" 
-          width="256" 
-          height="256" 
           class="videoframes"
     ></canvas>
-  </main>
-
-  <FooterComponent
-      @start-camera="startCamera"
-      @stop-camera="stopCamera"
-  ></FooterComponent>
 </template>
 
 <style scoped>
@@ -97,8 +94,11 @@ onMounted(() => {
 
 .videoframes {
   transform: scale(-1,1); /* reflect image */
+
   display: block;
-  width: 90vh; /* not a typo: we need a square */
+  top: 0;
+  left: 0;
+  width: 90vh; /* not a typo: we want a square */
   height: 90vh;
 }
 </style>
