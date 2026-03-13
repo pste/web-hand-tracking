@@ -24,6 +24,10 @@ async function createHandLandmarker() {
     })
 }
 
+function enableVideo(value) {
+    videoActive = value;
+}
+
 // == UTILS ======================================================================== //
 
 // utility to get distance from 2 points
@@ -60,9 +64,43 @@ function checkArc(points) {
     return false;
 }
 
+// scalar product between BA and DC vectors (taken from cosin theorem)
+function fingerAngle(points) {
+    // isolate point for better reading
+    const a = points[0];
+    const b = points[1];
+    const c = points[2];
+    const d = points[3];
+
+    // build vectors
+    const AB = {
+        x: a.x - b.x,
+        y: a.y - b.y,
+        z: a.z - b.z,
+    }
+    const DC = {
+        x: d.x - c.x,
+        y: d.y - c.y,
+        z: d.z - c.z,
+    }
+    
+    // do the math
+    const scalarProduct = (AB.x * DC.x) + (AB.y * DC.y) + (AB.z * DC.z);
+    const ABlen = Math.sqrt(Math.pow(AB.x, 2) + Math.pow(AB.y, 2) + Math.pow(AB.z, 2));
+    const DClen = Math.sqrt(Math.pow(DC.x, 2) + Math.pow(DC.y, 2) + Math.pow(DC.z, 2));
+    const cos = scalarProduct / (ABlen * DClen);
+    return Math.acos(cos) * 180 / Math.PI; // get the angle (in degrees)
+}
+
 // build an "hand" object
 function readHand(handedness, landmarks) {
     const treshold = 0.3;
+    // init the "hand"
+    const thl = landmarks.slice(1,5);
+    const inl = landmarks.slice(5,9);
+    const mil = landmarks.slice(9,13);
+    const ril = landmarks.slice(13,17);
+    const pil = landmarks.slice(17,21);
     const hand =  {
         info: handedness[0],
         wrist: {
@@ -70,52 +108,44 @@ function readHand(handedness, landmarks) {
             color: "#FFFFFF",
         },
         fingers: {
+            // [1,2,3,4]
             thumb: {
-                closed: false, // checkArc(landmarks.slice(1,4)), // distance(landmarks[1], landmarks[4]) <= treshold,
-                distance: distance(landmarks[1], landmarks[4]),
-                landmarks: [],
+                angle: fingerAngle(thl), // (1,2,3) different points for the thumb
+                landmarks: thl,
                 color1: "#ff0d0d",
                 color2: "#000000",
             },
+            // [5,6,7,8]
             index: {
-                closed: false, // checkArc(landmarks.slice(5,8)), // distance(landmarks[5], landmarks[8]) <= treshold,
-                distance: distance(landmarks[5], landmarks[8]),
-                landmarks: [],
+                angle: fingerAngle(inl), // (0,1,3) base, first and last points
+                landmarks: inl,
                 color1: "#00FF00",
                 color2: "#000000",
             },
+            // [9,10,11,12]
             middle: {
-                closed: false, // checkArc(landmarks.slice(9,12)), // distance(landmarks[9], landmarks[12]) <= treshold,
-                distance: distance(landmarks[9], landmarks[12]),
-                landmarks: [],
+                angle: fingerAngle(mil),
+                landmarks: mil,
                 color1: "#0000ff",
                 color2: "#000000",
             },
+            // [13,14,15,16]
             ring: {
-                closed: false, // checkArc(landmarks.slice(13,16)), // distance(landmarks[13], landmarks[16]) <= treshold,
-                distance: distance(landmarks[13], landmarks[16]),
-                landmarks: [],
+                angle: fingerAngle(ril),
+                landmarks: ril,
                 color1:"#FFFF00",
                 color2:"#000000",
             },
+            // [17,18,19,20]
             pinky: {
-                closed: false, // checkArc(landmarks.slice(17,20)), // distance(landmarks[17], landmarks[20]) <= treshold,
-                distance: distance(landmarks[17], landmarks[20]),
-                landmarks: [],
+                angle: fingerAngle(pil),
+                landmarks: pil,
                 color1: "#7b00b4",
                 color2: "#000000",
             }
         }
     }
     //
-    landmarks.forEach((landmark, index) => {
-        if (index === 0) hand.wrist.landmarks.push(landmark); 
-        if (index >= 1 && index <= 4) hand.fingers.thumb.landmarks.push(landmark); 
-        if (index >= 5 && index <= 8) hand.fingers.index.landmarks.push(landmark); 
-        if (index >= 9 && index <= 12) hand.fingers.middle.landmarks.push(landmark); 
-        if (index >= 13 && index <= 16) hand.fingers.ring.landmarks.push(landmark); 
-        if (index >= 17 && index <= 20) hand.fingers.pinky.landmarks.push(landmark); 
-    })
     return hand;
 }
 
@@ -127,59 +157,33 @@ function drawHand(drawingUtils, handedness, landmarks) {
         lineWidth: 5
     });
 
-    // punti dita tutti rossi
+    // draw all the finger' dots in one shot
     /*drawingUtils.drawLandmarks(landmarks, { 
         color: "#FF0000", 
         lineWidth: 2 
     });*/
 
+    // build hand object
     const hand = readHand(handedness, landmarks);
-    // console.log(`${JSON.stringify(hand)} found`)
+
     // draw wrist
     drawingUtils.drawLandmarks(hand.wrist.landmarks, {
         color: hand.wrist.color,
         radius: 4,
-        lineWidth: 1,
+        //lineWidth: 1,
     });
+
     // draw fingers
     for (let idx in hand.fingers) {
         const finger = hand.fingers[idx];
         const landmarks = finger.landmarks;
         // draw it
         drawingUtils.drawLandmarks(landmarks, {
-            color: (finger.closed)?finger.color2:finger.color1,
-            radius: 4,
-            lineWidth: 1,
+            color: (finger.angle <= 110) ? finger.color2 : finger.color1,
+            radius: 2,
+            //lineWidth: 1,
         });
     }
-
-    /*landmarks.forEach((landmark, index) => {
-        let color = "#000000";
-        let size = 2;
-        // color chooser
-        if (index === 0) color = "#FFFFFF"; // Polso (Bianco)
-        if (index >= 1 && index <= 4) color = "#ff3f3f"; // Pollice (Rosso)
-        if (index >= 5 && index <= 8) color = "#00FF00"; // Indice (Verde)
-        if (index >= 9 && index <= 12) color = "#2525ff"; // Medio (Blu)
-        if (index >= 13 && index <= 16) color = "#FFFF00"; // Anulare (Giallo)
-        if (index >= 17 && index <= 20) color = "#8320b1"; // Mignolo (Viola)
-        // size chooser
-        if ((index === 0) || 
-            (index === 4) || 
-            (index === 8) || 
-            (index === 12) || 
-            (index === 16) || 
-            (index === 20)) {
-                size = 4;
-                console.log(index, landmark);
-        }
-        // draw it
-        drawingUtils.drawLandmarks([landmark], {
-            color: color,
-            radius: size,
-            lineWidth: 1,
-        });
-    });*/
 }
 
 // == DETECT ======================================================================== //
@@ -187,6 +191,7 @@ function drawHand(drawingUtils, handedness, landmarks) {
 // the detector
 let handLandmarker = await createHandLandmarker();
 let running = false;
+let videoActive = true;
 
 // detect from video
 async function startDetection(video, canvas) {
@@ -200,7 +205,9 @@ async function startDetection(video, canvas) {
     function frameLoop(timestamp) {
         if (running) {
             // draw the camera input (before detection to speedup continuous drawing)
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (videoActive) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            }
 
             // detect 
             let results = undefined;
@@ -218,7 +225,9 @@ async function startDetection(video, canvas) {
                 // clear and redraw photo before the drawings
                 ctx.save();
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                if (videoActive) {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                }
 
                 // iterate hands to draw them
                 const landmarks = results.landmarks;
@@ -256,6 +265,7 @@ async function stopDetection() {
 const mediapipe = {
     startDetection,
     stopDetection,
+    enableVideo,
 }
 
 export default {

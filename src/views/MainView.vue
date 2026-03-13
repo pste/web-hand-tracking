@@ -5,8 +5,10 @@ import HandDetector from '@/components/HandDetector.vue'
 import { provide, ref } from 'vue'
 
 // propagate camera info
-const cameraStarted = ref(false)
-provide('cameraStarted', cameraStarted)
+const cameraOn = ref(true)
+const trackingStarted = ref(false)
+provide('cameraOn', cameraOn)
+provide('trackingStarted', trackingStarted)
 
 </script>
 

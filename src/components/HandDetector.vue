@@ -2,16 +2,21 @@
 import { ref, watch, inject, onMounted } from 'vue'
 
 const mediapipe = inject('mediapipe');
-const cameraStarted = inject('cameraStarted');
+const trackingStarted = inject('trackingStarted');
+const cameraOn = inject('cameraOn');
 
 const stream = ref(null); // a MediaStream HTML5 object
 const videoRef = ref(null);
 const canvasRef = ref(null);
 
 // button events watcher
-watch(cameraStarted, (val) => {
-    if (val) startCamera();
-    else stopCamera();
+watch(trackingStarted, (val) => {
+  if (val) startCamera();
+  else stopCamera();
+})
+
+watch(cameraOn, (val) => {
+  mediapipe.enableVideo(val);
 })
 
 // start recording (detection happens on video data)

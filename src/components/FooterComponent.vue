@@ -1,20 +1,28 @@
 <script setup>
 import { inject } from 'vue'
 
-const cameraStarted = inject('cameraStarted')
+const trackingStarted = inject('trackingStarted');
+const cameraOn = inject('cameraOn');
 </script>
 
 <template>
   <footer>
     <button 
-        @click="cameraStarted = true" 
-    ><!-- $emit('start-camera') -->
-      Start Camera
+        @click="trackingStarted = true" 
+    >
+      Start
     </button>
+
     <button 
-        @click="cameraStarted = false" 
+        @click="cameraOn = !cameraOn" 
+    >
+      On / Off video
+    </button>
+
+    <button 
+        @click="trackingStarted = false" 
     ><!-- $emit('stop-camera') -->
-      Stop Camera
+      Stop
     </button>
   </footer>
 </template>
