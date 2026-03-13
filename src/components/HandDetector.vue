@@ -3,17 +3,18 @@ import { ref, watch, inject, onMounted } from 'vue'
 
 const mediapipe = inject('mediapipe');
 const cameraStarted = inject('cameraStarted');
+
 const stream = ref(null); // a MediaStream HTML5 object
 const videoRef = ref(null);
-
 const canvasRef = ref(null);
 
+// button events watcher
 watch(cameraStarted, (val) => {
     if (val) startCamera();
     else stopCamera();
 })
 
-//
+// start recording (detection happens on video data)
 async function startCamera() {
   // enable webcam
   stream.value = await navigator.mediaDevices.getUserMedia({
@@ -27,7 +28,7 @@ async function startCamera() {
   videoRef.value.srcObject = stream.value;
 }
 
-//
+// stop recording, detection and drawing
 function stopCamera() {
   // stop detection
   mediapipe.stopDetection();
@@ -42,26 +43,26 @@ function stopCamera() {
   // clear state
   stream.value = null;
   videoRef.value.srcObject = null;
+
+  // clear canvas
+  const canvas = canvasRef.value;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-//
-function predictWebcam() {
+// read image and track hands
+function trackHands() {
   // start the detection (read from video, draw on canvas)
   const video = videoRef.value;
   const canvas = canvasRef.value;
   
-  // 
+  // trigger mediapipe
   mediapipe.startDetection(video, canvas);
 }
 
 // init
 onMounted(() => {
-  // go fullscreen
-  //canvasRef.value.width = window.innerWidth;
-  //canvasRef.value.height = window.innerHeight;
-
-  //videoRef.value.addEventListener("loadeddata", predictWebcam);
-  videoRef.value.onloadeddata = (evt) => { predictWebcam(); };
+  videoRef.value.onloadeddata = (evt) => { trackHands(); };
 })
 </script>
 
@@ -96,7 +97,10 @@ onMounted(() => {
   transform: scale(-1,1); /* reflect image */
 
   display: block;
-  top: 0;
+  margin-right: auto; 
+  margin-left: auto; 
+  margin-top: 10px; 
+  top: 0px;
   left: 0;
   width: 90vh; /* not a typo: we want a square */
   height: 90vh;

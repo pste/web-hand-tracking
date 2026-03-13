@@ -60,7 +60,7 @@ function checkArc(points) {
     return false;
 }
 
-//
+// build an "hand" object
 function readHand(handedness, landmarks) {
     const treshold = 0.3;
     const hand =  {
@@ -119,6 +119,7 @@ function readHand(handedness, landmarks) {
     return hand;
 }
 
+// draw the hand(s)
 function drawHand(drawingUtils, handedness, landmarks) {
     // draw sticky lines
     drawingUtils.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, {
@@ -190,49 +191,51 @@ let running = false;
 // detect from video
 async function startDetection(video, canvas) {
     console.log("detection started");
-    let lastVideoTime = -1;
+    let lastTimestamp = -1;
     running = true;
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const drawingUtils = new DrawingUtils(ctx);
 
-    function frameLoop() {
+    function frameLoop(timestamp) {
         if (running) {
             // draw the camera input (before detection to speedup continuous drawing)
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             // detect 
             let results = undefined;
-            if (video.currentTime !== lastVideoTime) {
+            /*if (video.currentTime !== lastTimestamp) { // analyze every frame
                 results = handLandmarker.detectForVideo(video, video.currentTime);
-                lastVideoTime = video.currentTime;
+                lastTimestamp = video.currentTime;
+            }*/
+            if (timestamp - lastTimestamp >= 33) { // detect every 33ms to unload CPU/GPU (it's about 30 FPS = 1000msec/30fps) 
+                results = handLandmarker.detectForVideo(video, timestamp);
+                lastTimestamp = timestamp;
             }
             
             // draw the sticky connections
             if (results && results?.landmarks) {
-                // clear and redraw photo
+                // clear and redraw photo before the drawings
                 ctx.save();
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // get and iterate hands
+                // iterate hands to draw them
                 const landmarks = results.landmarks;
                 const handedness = results.handedness;
                 for (let i=0; i<handedness.length; i++) {
                     const hand = handedness[i];
                     const lm = landmarks[i];
-                    //
                     drawHand(drawingUtils, hand, lm);
                 }
                 //
                 ctx.restore();
             }
 
-            // trigger loop
+            // trigger another loop
             requestAnimationFrame(frameLoop);
         }
     }
-
     frameLoop();
 }
 
